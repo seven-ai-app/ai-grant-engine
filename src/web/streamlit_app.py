@@ -1,8 +1,28 @@
 """Streamlit web interface for the AI Grant Engine."""
 
 import asyncio
+import os
 import streamlit as st
 from pathlib import Path
+
+# Load environment variables from secrets (for cloud deployment)
+def _load_secrets_to_env():
+    """Load Streamlit secrets into env vars for the settings module."""
+    secret_keys = [
+        "GROQ_API_KEY", "GEMINI_API_KEY", "TOGETHER_API_KEY",
+        "OPENROUTER_API_KEY", "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "MISTRAL_API_KEY",
+    ]
+    for key in secret_keys:
+        val = os.environ.get(key, "")
+        if not val:
+            try:
+                val = st.secrets.get(key, "")
+            except Exception:
+                pass
+        if val:
+            os.environ[key] = val
+
+_load_secrets_to_env()
 
 st.set_page_config(
     page_title="AI Grant Engine - מנוע מענקים",

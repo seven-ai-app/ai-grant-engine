@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: ai-grant-engine
+    runtime: docker
+    repo: https://github.com/seven-ai-app/ai-grant-engine
+    branch: master
+    plan: free
+    healthCheckPath: /_stcore/health
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: TOGETHER_API_KEY
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: MISTRAL_API_KEY
+        sync: false
