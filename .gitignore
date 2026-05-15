@@ -4,10 +4,10 @@
 venv/
 env/
 
-# Output
-output/
-uploads/
-chroma_db/
+# Output (root-level generated dirs only — NOT src/output/ source code)
+/output/
+/uploads/
+/chroma_db/
 
 # Python
 __pycache__/
