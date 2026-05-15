@@ -2,8 +2,15 @@
 
 import asyncio
 import os
+import sys
 import streamlit as st
 from pathlib import Path
+
+# Fix import paths for Streamlit Cloud deployment
+# The app runs from /mount/src/ai-grant-engine/ so we need to add the root to sys.path
+_ROOT = Path(__file__).parent.parent.parent  # ai-grant-engine/
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
 
 # Load environment variables from secrets (for cloud deployment)
 def _load_secrets_to_env():
@@ -285,12 +292,7 @@ def _display_results_summary():
 
 async def _run_pipeline(inputs: dict) -> dict:
     """Execute the grant pipeline."""
-    import os
-    from ..config.settings import Settings
-    from ..graph.pipeline import compile_pipeline
-    from ..graph.state import create_initial_state
-
-    # Set env vars from session state
+    # Set env vars from session state FIRST (before importing Settings)
     provider_keys = {
         "GROQ_API_KEY": "groq_api_key",
         "GEMINI_API_KEY": "gemini_api_key",
@@ -301,9 +303,12 @@ async def _run_pipeline(inputs: dict) -> dict:
         "MISTRAL_API_KEY": "mistral_api_key",
     }
     for env_key, session_key in provider_keys.items():
-        val = st.session_state.get(session_key)
+        val = st.session_state.get(session_key, "")
         if val:
             os.environ[env_key] = val
+
+    from src.graph.pipeline import compile_pipeline
+    from src.graph.state import create_initial_state
 
     # Create initial state
     state = create_initial_state(**inputs)
