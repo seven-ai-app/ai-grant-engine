@@ -1,3 +1,5 @@
+"""Document parser - extracts text from PDF, DOCX, PPTX, and TXT files."""
+
 import logging
 from pathlib import Path
 
@@ -5,91 +7,63 @@ logger = logging.getLogger(__name__)
 
 
 async def parse_uploaded_files(file_paths: list[str]) -> list[dict]:
-    """Parse uploaded files (PDF, PPTX, DOCX) and extract text content."""
-    results = []
-    for path_str in file_paths:
-        path = Path(path_str)
-        if not path.exists():
-            logger.warning(f"File not found: {path}")
-            continue
+    """Parse uploaded files and extract text content.
 
+    Supports: .pdf, .docx, .pptx, .txt, .md
+    Returns a list of dicts with keys: filename, content, type
+    """
+    results = []
+    for path in file_paths:
         try:
-            content = _extract_content(path)
+            content = ""
+            ext = Path(path).suffix.lower()
+
+            if ext == ".pdf":
+                import PyPDF2
+                with open(path, "rb") as f:
+                    reader = PyPDF2.PdfReader(f)
+                    content = "\n".join(
+                        page.extract_text() or "" for page in reader.pages
+                    )
+
+            elif ext == ".docx":
+                import docx
+                doc = docx.Document(path)
+                content = "\n".join(
+                    p.text for p in doc.paragraphs if p.text.strip()
+                )
+
+            elif ext == ".pptx":
+                from pptx import Presentation
+                prs = Presentation(path)
+                texts = []
+                for slide_num, slide in enumerate(prs.slides, 1):
+                    texts.append(f"--- Slide {slide_num} ---")
+                    for shape in slide.shapes:
+                        if hasattr(shape, "text") and shape.text.strip():
+                            texts.append(shape.text.strip())
+                content = "\n".join(texts)
+
+            elif ext in (".txt", ".md"):
+                with open(path, "r", encoding="utf-8", errors="replace") as f:
+                    content = f.read()
+
+            else:
+                logger.warning(f"Unsupported file type: {ext} ({path})")
+                content = ""
+
             results.append({
-                "filename": path.name,
-                "path": str(path),
-                "type": path.suffix.lower(),
-                "content": content,
+                "filename": Path(path).name,
+                "content": content[:15000],
+                "type": ext,
             })
+
         except Exception as e:
             logger.error(f"Error parsing {path}: {e}")
             results.append({
-                "filename": path.name,
-                "path": str(path),
-                "type": path.suffix.lower(),
-                "content": "",
-                "error": str(e),
+                "filename": Path(path).name,
+                "content": f"Error: {e}",
+                "type": "error",
             })
 
     return results
-
-
-def _extract_content(path: Path) -> str:
-    """Extract text from a file based on its extension."""
-    suffix = path.suffix.lower()
-
-    if suffix == ".pdf":
-        return _extract_pdf(path)
-    elif suffix == ".pptx":
-        return _extract_pptx(path)
-    elif suffix == ".docx":
-        return _extract_docx(path)
-    elif suffix in (".txt", ".md"):
-        return path.read_text(encoding="utf-8")
-    else:
-        logger.warning(f"Unsupported file type: {suffix}")
-        return ""
-
-
-def _extract_pdf(path: Path) -> str:
-    """Extract text from PDF."""
-    from PyPDF2 import PdfReader
-
-    reader = PdfReader(str(path))
-    text_parts = []
-    for page in reader.pages:
-        text = page.extract_text()
-        if text:
-            text_parts.append(text)
-    return "\n\n".join(text_parts)
-
-
-def _extract_pptx(path: Path) -> str:
-    """Extract text from PowerPoint presentation."""
-    from pptx import Presentation
-
-    prs = Presentation(str(path))
-    text_parts = []
-    for slide_num, slide in enumerate(prs.slides, 1):
-        slide_text = [f"--- Slide {slide_num} ---"]
-        for shape in slide.shapes:
-            if shape.has_text_frame:
-                for paragraph in shape.text_frame.paragraphs:
-                    text = paragraph.text.strip()
-                    if text:
-                        slide_text.append(text)
-        text_parts.append("\n".join(slide_text))
-    return "\n\n".join(text_parts)
-
-
-def _extract_docx(path: Path) -> str:
-    """Extract text from Word document."""
-    from docx import Document
-
-    doc = Document(str(path))
-    text_parts = []
-    for paragraph in doc.paragraphs:
-        text = paragraph.text.strip()
-        if text:
-            text_parts.append(text)
-    return "\n\n".join(text_parts)

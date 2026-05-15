@@ -76,11 +76,14 @@ async def strategist_node(state: GrantState) -> dict:
         router = _get_router()
         agent = StrategistAgent(router)
         result = await agent.run(state)
+        # Carry forward competitor_table (may be populated elsewhere later)
+        result.setdefault("competitor_table", state.get("competitor_table", []))
         return {**result, "current_stage": "drafting_technical"}
     except Exception as e:
         logger.error(f"Strategist failed: {e}")
         return {
             "sections": state.get("sections", []),
+            "competitor_table": state.get("competitor_table", []),
             "current_stage": "drafting_technical",
             "error": f"Strategist error: {str(e)[:200]}",
         }
@@ -96,11 +99,16 @@ async def technical_writer_node(state: GrantState) -> dict:
         router = _get_router()
         agent = TechnicalWriterAgent(router)
         result = await agent.run(state)
+        # Ensure new structured-table fields are always present
+        result.setdefault("rd_tasks", state.get("rd_tasks", []))
+        result.setdefault("capability_table", state.get("capability_table", []))
         return {**result, "current_stage": "financials"}
     except Exception as e:
         logger.error(f"Technical Writer failed: {e}")
         return {
             "sections": state.get("sections", []),
+            "rd_tasks": state.get("rd_tasks", []),
+            "capability_table": state.get("capability_table", []),
             "current_stage": "financials",
             "error": f"Technical Writer error: {str(e)[:200]}",
         }
@@ -185,19 +193,61 @@ async def output_node(state: GrantState) -> dict:
 def _default_budget_lines():
     from ..graph.state import BudgetLine
     from ..config.constants import GRANT_RATE
+
+    # (category, description_he, amount, hourly_rate, hours, justification_he)
     lines = [
-        ("subcontractors", "פיתוח תוכנה", 100_000, 250, 400),
-        ("subcontractors", "אלגוריתמים ו-AI", 60_000, 300, 200),
-        ("materials", "שרתים ותשתיות", 30_000, None, None),
-        ("ip_patents", "פטנט ו-FTO", 30_000, None, None),
-        ("business_development", "יועץ שיווק", 20_000, 200, 100),
-        ("travel_abroad", "תערוכה בינלאומית", 10_000, None, None),
+        (
+            "subcontractors",
+            "פיתוח תוכנה - קבלן משנה",
+            100_000, 250, 400,
+            "פיתוח רכיבי הליבה הטכנולוגיים על ידי מפתח בכיר בתעריף 250 ₪/שעה "
+            "ל-400 שעות. נדרש לצורך הורדת סיכון טכנולוגי בשלב הפיתוח.",
+        ),
+        (
+            "subcontractors",
+            "פיתוח אלגוריתמים ובינה מלאכותית",
+            60_000, 300, 200,
+            "מומחה אלגוריתמים בתעריף 300 ₪/שעה ל-200 שעות. קפיצת מדרגה "
+            "טכנולוגית הדורשת ידע מתמחה שאינו קיים בצוות הנוכחי.",
+        ),
+        (
+            "materials",
+            "שרתים, תשתיות ענן ורישיונות",
+            30_000, None, None,
+            "עלויות תשתית ענן (AWS/GCP) לפיתוח, בדיקות ואחסון נתונים "
+            "לאורך 12 חודשי הפרויקט. נדרש לבניית סביבת הפיתוח.",
+        ),
+        (
+            "ip_patents",
+            "הגשת בקשת פטנט וסקר FTO",
+            30_000, None, None,
+            "הגשת בקשת פטנט ישראלית ובינלאומית (PCT) להגנה על חידושי הליבה, "
+            "וסקר חופש פעולה (FTO) לוודא שאין הפרת זכויות קיימות.",
+        ),
+        (
+            "business_development",
+            "ייעוץ עסקי ותיקוף שוק",
+            20_000, 200, 100,
+            "יועץ עסקי בכיר בתעריף 200 ₪/שעה ל-100 שעות לפיתוח תוכנית עסקית, "
+            "תיקוף שוק מול לקוחות פוטנציאלים, והכנה לגיוס הון.",
+        ),
+        (
+            "travel_abroad",
+            "השתתפות בתערוכה בינלאומית",
+            10_000, None, None,
+            "השתתפות בתערוכת טכנולוגיה בינלאומית רלוונטית לתחום המיזם, "
+            "לצורך תיקוף שוק, יצירת קשרים עסקיים ופגישות עם משקיעים פוטנציאלים.",
+        ),
     ]
     return [
         BudgetLine(
-            category=cat, description_he=desc, amount=amt,
-            grant_portion=amt * GRANT_RATE,
-            justification_he=desc, hourly_rate=rate, hours=hours,
+            category=cat,
+            description_he=desc,
+            amount=amt,
+            grant_portion=round(amt * GRANT_RATE, 2),
+            justification_he=just,
+            hourly_rate=rate,
+            hours=hours,
         )
-        for cat, desc, amt, rate, hours in lines
+        for cat, desc, amt, rate, hours, just in lines
     ]
