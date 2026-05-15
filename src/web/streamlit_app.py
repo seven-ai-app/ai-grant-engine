@@ -39,21 +39,418 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+CUSTOM_CSS = """
+<style>
+/* ===== ANIMATED BACKGROUND ===== */
+@keyframes gradientShift {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+@keyframes float {
+    0%   { transform: translateY(0px) rotate(0deg); opacity: 0.15; }
+    50%  { transform: translateY(-30px) rotate(180deg); opacity: 0.25; }
+    100% { transform: translateY(0px) rotate(360deg); opacity: 0.15; }
+}
+
+@keyframes pulse-glow {
+    0%   { box-shadow: 0 0 5px rgba(99,102,241,0.3), 0 0 20px rgba(99,102,241,0.1); }
+    50%  { box-shadow: 0 0 20px rgba(99,102,241,0.6), 0 0 60px rgba(99,102,241,0.2); }
+    100% { box-shadow: 0 0 5px rgba(99,102,241,0.3), 0 0 20px rgba(99,102,241,0.1); }
+}
+
+@keyframes fadeSlideDown {
+    from { opacity: 0; transform: translateY(-30px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shimmer {
+    0%   { background-position: -200% center; }
+    100% { background-position: 200% center; }
+}
+
+@keyframes orbit {
+    from { transform: rotate(0deg) translateX(120px) rotate(0deg); }
+    to   { transform: rotate(360deg) translateX(120px) rotate(-360deg); }
+}
+
+@keyframes particle-float {
+    0%   { transform: translate(0, 0) scale(1); opacity: 0.6; }
+    33%  { transform: translate(30px, -50px) scale(1.2); opacity: 0.8; }
+    66%  { transform: translate(-20px, -80px) scale(0.9); opacity: 0.5; }
+    100% { transform: translate(0, -120px) scale(0.5); opacity: 0; }
+}
+
+/* Main app background */
+.stApp {
+    background: linear-gradient(-45deg, #0f0c29, #302b63, #1a1a4e, #0d1b4b, #1e0a3c);
+    background-size: 400% 400%;
+    animation: gradientShift 12s ease infinite;
+    min-height: 100vh;
+}
+
+/* Floating orbs in background */
+.stApp::before {
+    content: '';
+    position: fixed;
+    top: 10%;
+    left: 5%;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%);
+    border-radius: 50%;
+    animation: float 8s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.stApp::after {
+    content: '';
+    position: fixed;
+    bottom: 10%;
+    right: 5%;
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(139,92,246,0.10) 0%, transparent 70%);
+    border-radius: 50%;
+    animation: float 11s ease-in-out infinite reverse;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* ===== HEADER HERO ===== */
+.hero-container {
+    text-align: center;
+    padding: 2.5rem 1rem 1.5rem;
+    animation: fadeSlideDown 0.8s ease-out;
+    position: relative;
+}
+
+.hero-title {
+    font-size: 3rem;
+    font-weight: 900;
+    background: linear-gradient(135deg, #a78bfa, #60a5fa, #34d399, #a78bfa);
+    background-size: 300% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: shimmer 4s linear infinite;
+    letter-spacing: -1px;
+    margin-bottom: 0.5rem;
+    direction: rtl;
+}
+
+.hero-subtitle {
+    font-size: 1.1rem;
+    color: rgba(200, 210, 255, 0.75);
+    direction: rtl;
+    margin-bottom: 0.5rem;
+    animation: fadeSlideDown 1s ease-out 0.2s both;
+}
+
+.hero-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, rgba(99,102,241,0.25), rgba(139,92,246,0.25));
+    border: 1px solid rgba(139,92,246,0.4);
+    color: #c4b5fd;
+    padding: 0.3rem 1rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    margin: 0.3rem 0.25rem;
+    animation: fadeSlideUp 1s ease-out 0.4s both;
+    backdrop-filter: blur(8px);
+}
+
+/* ===== SIDEBAR ===== */
+section[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, rgba(15,12,41,0.97) 0%, rgba(30,10,60,0.97) 100%);
+    border-right: 1px solid rgba(139,92,246,0.25);
+    backdrop-filter: blur(16px);
+}
+
+section[data-testid="stSidebar"] .stMarkdown h2,
+section[data-testid="stSidebar"] .stMarkdown h3 {
+    color: #c4b5fd !important;
+}
+
+/* ===== CARDS / CONTAINERS ===== */
+div[data-testid="stVerticalBlock"] > div[data-testid="stVerticalBlockBorderWrapper"],
+div.stForm {
+    background: rgba(255,255,255,0.04) !important;
+    border: 1px solid rgba(139,92,246,0.2) !important;
+    border-radius: 16px !important;
+    backdrop-filter: blur(12px) !important;
+    transition: border-color 0.3s, transform 0.2s;
+}
+
+div[data-testid="stVerticalBlock"] > div[data-testid="stVerticalBlockBorderWrapper"]:hover {
+    border-color: rgba(139,92,246,0.5) !important;
+    transform: translateY(-2px);
+}
+
+/* ===== INPUTS ===== */
+.stTextInput > div > div > input,
+.stTextArea > div > div > textarea,
+.stSelectbox > div > div {
+    background: rgba(255,255,255,0.06) !important;
+    border: 1px solid rgba(139,92,246,0.3) !important;
+    border-radius: 10px !important;
+    color: #e2e8f0 !important;
+    transition: border-color 0.3s, box-shadow 0.3s !important;
+}
+
+.stTextInput > div > div > input:focus,
+.stTextArea > div > div > textarea:focus {
+    border-color: rgba(139,92,246,0.7) !important;
+    box-shadow: 0 0 0 3px rgba(139,92,246,0.15) !important;
+}
+
+/* ===== PRIMARY BUTTON ===== */
+.stButton > button[kind="primary"] {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6, #a855f7) !important;
+    background-size: 200% auto !important;
+    border: none !important;
+    border-radius: 12px !important;
+    color: white !important;
+    font-weight: 700 !important;
+    font-size: 1.05rem !important;
+    padding: 0.75rem 2rem !important;
+    transition: all 0.3s ease !important;
+    animation: pulse-glow 2.5s ease-in-out infinite;
+    letter-spacing: 0.5px;
+}
+
+.stButton > button[kind="primary"]:hover {
+    background-position: right center !important;
+    transform: translateY(-3px) scale(1.02) !important;
+    box-shadow: 0 8px 30px rgba(99,102,241,0.5) !important;
+}
+
+.stButton > button[kind="primary"]:active {
+    transform: translateY(-1px) scale(0.99) !important;
+}
+
+/* Secondary buttons */
+.stButton > button:not([kind="primary"]) {
+    background: rgba(255,255,255,0.07) !important;
+    border: 1px solid rgba(139,92,246,0.35) !important;
+    border-radius: 10px !important;
+    color: #c4b5fd !important;
+    transition: all 0.2s !important;
+}
+
+.stButton > button:not([kind="primary"]):hover {
+    background: rgba(139,92,246,0.15) !important;
+    border-color: rgba(139,92,246,0.6) !important;
+    transform: translateY(-1px) !important;
+}
+
+/* ===== TABS ===== */
+.stTabs [data-baseweb="tab-list"] {
+    background: rgba(255,255,255,0.04) !important;
+    border-radius: 12px !important;
+    padding: 4px !important;
+    border: 1px solid rgba(139,92,246,0.2) !important;
+}
+
+.stTabs [data-baseweb="tab"] {
+    border-radius: 8px !important;
+    color: rgba(196,181,253,0.7) !important;
+    font-weight: 500 !important;
+    transition: all 0.2s !important;
+}
+
+.stTabs [aria-selected="true"] {
+    background: linear-gradient(135deg, rgba(99,102,241,0.35), rgba(139,92,246,0.35)) !important;
+    color: #e2e8f0 !important;
+    border: 1px solid rgba(139,92,246,0.4) !important;
+}
+
+/* ===== METRICS ===== */
+div[data-testid="stMetric"] {
+    background: rgba(255,255,255,0.05) !important;
+    border: 1px solid rgba(99,102,241,0.25) !important;
+    border-radius: 14px !important;
+    padding: 1rem !important;
+    animation: fadeSlideUp 0.6s ease-out both;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+div[data-testid="stMetric"]:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(99,102,241,0.2);
+}
+
+div[data-testid="stMetricValue"] {
+    color: #a78bfa !important;
+    font-weight: 800 !important;
+}
+
+/* ===== ALERTS ===== */
+div[data-testid="stAlert"] {
+    border-radius: 12px !important;
+    backdrop-filter: blur(8px) !important;
+    border-left-width: 4px !important;
+}
+
+/* ===== PROGRESS BAR ===== */
+.stProgress > div > div > div > div {
+    background: linear-gradient(90deg, #6366f1, #8b5cf6, #a855f7) !important;
+    background-size: 200% auto !important;
+    animation: shimmer 2s linear infinite !important;
+    border-radius: 4px !important;
+}
+
+/* ===== EXPANDER ===== */
+details {
+    background: rgba(255,255,255,0.04) !important;
+    border: 1px solid rgba(139,92,246,0.2) !important;
+    border-radius: 12px !important;
+    padding: 0.5rem !important;
+    margin: 0.5rem 0 !important;
+    transition: border-color 0.3s !important;
+}
+
+details:hover {
+    border-color: rgba(139,92,246,0.45) !important;
+}
+
+details summary {
+    color: #c4b5fd !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+}
+
+/* ===== FILE UPLOADER ===== */
+div[data-testid="stFileUploader"] {
+    border: 2px dashed rgba(139,92,246,0.35) !important;
+    border-radius: 14px !important;
+    background: rgba(99,102,241,0.04) !important;
+    transition: border-color 0.3s, background 0.3s !important;
+}
+
+div[data-testid="stFileUploader"]:hover {
+    border-color: rgba(139,92,246,0.65) !important;
+    background: rgba(99,102,241,0.08) !important;
+}
+
+/* ===== DOWNLOAD BUTTON ===== */
+div[data-testid="stDownloadButton"] > button {
+    background: linear-gradient(135deg, rgba(16,185,129,0.2), rgba(52,211,153,0.2)) !important;
+    border: 1px solid rgba(52,211,153,0.4) !important;
+    color: #6ee7b7 !important;
+    border-radius: 10px !important;
+    font-weight: 600 !important;
+    transition: all 0.2s !important;
+}
+
+div[data-testid="stDownloadButton"] > button:hover {
+    background: linear-gradient(135deg, rgba(16,185,129,0.35), rgba(52,211,153,0.35)) !important;
+    border-color: rgba(52,211,153,0.7) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(52,211,153,0.2) !important;
+}
+
+/* ===== SPINNER ===== */
+.stSpinner > div {
+    border-top-color: #8b5cf6 !important;
+}
+
+/* ===== CHECKBOX ===== */
+.stCheckbox label {
+    color: #c4b5fd !important;
+}
+
+/* ===== ALL TEXT ===== */
+.stMarkdown p, .stMarkdown li { color: #cbd5e1 !important; }
+.stMarkdown h1, .stMarkdown h2, .stMarkdown h3 { color: #e2e8f0 !important; }
+label { color: #94a3b8 !important; }
+
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: rgba(255,255,255,0.03); }
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #6366f1, #8b5cf6);
+    border-radius: 3px;
+}
+
+/* ===== STAGE PROGRESS ITEMS ===== */
+.stage-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 1rem;
+    border-radius: 10px;
+    margin: 0.3rem 0;
+    transition: all 0.3s;
+    direction: rtl;
+}
+
+.stage-active {
+    background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(139,92,246,0.2));
+    border: 1px solid rgba(139,92,246,0.4);
+    animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.stage-done {
+    background: rgba(16,185,129,0.1);
+    border: 1px solid rgba(52,211,153,0.25);
+    color: #6ee7b7;
+}
+
+.stage-pending {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: rgba(148,163,184,0.5);
+}
+</style>
+"""
+
 
 def main():
+    # Inject CSS
+    st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
+
+    # Hero header
     st.markdown(
-        """<h1 style='text-align: right; direction: rtl;'>
-        🏛️ מנוע המענקים - AI Grant Engine
-        </h1>
-        <p style='text-align: right; direction: rtl; color: gray;'>
-        מערכת אוטומטית לכתיבת בקשות מענק למסלול תנופה - רשות החדשנות
-        </p>""",
+        """
+        <div class="hero-container">
+            <div class="hero-title">🏛️ מנוע המענקים</div>
+            <div style="font-size:1.4rem; color:#a78bfa; font-weight:600; margin-bottom:0.4rem;">
+                AI Grant Engine
+            </div>
+            <div class="hero-subtitle">
+                מערכת אוטומטית לכתיבת בקשות מענק · מסלול תנופה · רשות החדשנות הישראלית
+            </div>
+            <div>
+                <span class="hero-badge">🤖 7 מודלי AI</span>
+                <span class="hero-badge">📄 21 סעיפי בקשה</span>
+                <span class="hero-badge">💰 עד 200,000 ₪ מענק</span>
+                <span class="hero-badge">⚡ Zero Human Touch</span>
+            </div>
+        </div>
+        """,
         unsafe_allow_html=True,
     )
 
     # Sidebar - Configuration
     with st.sidebar:
-        st.header("⚙️ הגדרות")
+        st.markdown(
+            """<div style='text-align:center; padding: 0.5rem 0 1rem;'>
+            <div style='font-size:2rem;'>🏛️</div>
+            <div style='color:#a78bfa; font-weight:700; font-size:1.05rem;'>Grant Engine</div>
+            <div style='color:rgba(148,163,184,0.6); font-size:0.75rem;'>v2.0 · מסלול תנופה</div>
+            </div>
+            <hr style='border-color:rgba(139,92,246,0.2); margin-bottom:1rem;'>""",
+            unsafe_allow_html=True,
+        )
+        st.markdown("### ⚙️ הגדרות מודל AI")
         _render_provider_config()
 
     # Main content
@@ -176,27 +573,48 @@ def _render_pipeline_progress():
         _display_results_summary()
         return
 
-    st.header("🔄 מנוע המענקים בפעולה...")
+    st.markdown(
+        "<h2 style='text-align:center; color:#a78bfa; direction:rtl;'>🔄 מנוע המענקים בפעולה...</h2>",
+        unsafe_allow_html=True,
+    )
 
     stages = [
-        ("ingestion", "📥 קליטת מידע", "סריקת GitHub, מצגות ומסמכים"),
-        ("matching", "✅ בדיקת התאמה", "אימות עמידה בתנאי סף"),
-        ("drafting_strategy", "📊 אסטרטגיה", "כתיבת נרטיב עסקי ושיווקי"),
-        ("drafting_technical", "🔬 כתיבה טכנית", "ניסוח פרקי מו\"פ וחדשנות"),
-        ("financials", "💰 תקציב", "בניית תקציב אופטימלי"),
-        ("evaluation", "🎯 הערכה", "בדיקת איכות (Red Team)"),
-        ("output", "📄 הפקת מסמכים", "יצירת Word ו-Excel"),
+        ("ingestion",         "📥", "קליטת מידע",       "סריקת GitHub, מצגות ומסמכים"),
+        ("matching",          "✅", "בדיקת התאמה",       "אימות עמידה בתנאי סף"),
+        ("drafting_strategy", "📊", "אסטרטגיה",         "כתיבת נרטיב עסקי ושיווקי"),
+        ("drafting_technical","🔬", "כתיבה טכנית",       "ניסוח פרקי מו\"פ וחדשנות"),
+        ("financials",        "💰", "תקציב",             "בניית תקציב אופטימלי"),
+        ("evaluation",        "🎯", "הערכה",             "בדיקת איכות (Red Team)"),
+        ("output",            "📄", "הפקת מסמכים",       "יצירת Word ו-Excel"),
     ]
 
     current = st.session_state.get("current_stage", "ingestion")
-    for stage_id, label, desc in stages:
-        if stage_id == current:
-            st.markdown(f"⏳ **{label}** - {desc}")
-            st.progress(0.5)
-        elif stages.index((stage_id, label, desc)) < [s[0] for s in stages].index(current):
-            st.markdown(f"✅ ~~{label}~~")
+    stage_ids = [s[0] for s in stages]
+    current_idx = stage_ids.index(current) if current in stage_ids else 0
+
+    stages_html = ""
+    for i, (stage_id, icon, label, desc) in enumerate(stages):
+        if i < current_idx:
+            cls = "stage-done"
+            status_icon = "✔"
+        elif i == current_idx:
+            cls = "stage-active"
+            status_icon = "⏳"
         else:
-            st.markdown(f"⬜ {label}")
+            cls = "stage-pending"
+            status_icon = "○"
+        stages_html += f"""
+        <div class="stage-item {cls}">
+            <span style="font-size:1.3rem">{icon}</span>
+            <div style="flex:1">
+                <div style="font-weight:700; font-size:0.95rem">{label}</div>
+                <div style="font-size:0.78rem; opacity:0.7">{desc}</div>
+            </div>
+            <span style="font-size:1.1rem">{status_icon}</span>
+        </div>"""
+
+    st.markdown(f"<div style='max-width:600px; margin:0 auto'>{stages_html}</div>", unsafe_allow_html=True)
+    st.markdown("")
 
     # Run pipeline
     if st.session_state.get("pipeline_input") and not st.session_state.get("pipeline_result"):
