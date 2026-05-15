@@ -3,6 +3,7 @@
 import asyncio
 import os
 import sys
+import threading
 import streamlit as st
 from pathlib import Path
 
@@ -201,13 +202,18 @@ def _render_pipeline_progress():
     if st.session_state.get("pipeline_input") and not st.session_state.get("pipeline_result"):
         with st.spinner("🤖 המערכת כותבת את הבקשה... (עלול לקחת 2-5 דקות)"):
             try:
-                result = asyncio.run(_run_pipeline(st.session_state["pipeline_input"]))
+                result = _run_pipeline_sync(st.session_state["pipeline_input"])
                 st.session_state["pipeline_result"] = result
                 st.session_state["pipeline_complete"] = True
                 st.rerun()
             except Exception as e:
                 st.session_state["pipeline_running"] = False
-                st.error(f"❌ שגיאה בהרצת המנוע:\n\n`{str(e)}`")
+                # Unwrap nested errors for a readable message
+                cause = e
+                while hasattr(cause, "__cause__") and cause.__cause__:
+                    cause = cause.__cause__
+                error_msg = str(cause) or str(e)
+                st.error(f"❌ שגיאה בהרצת המנוע:\n\n`{error_msg}`")
                 st.info("💡 בדוק שמפתח ה-API שהוזן תקין, ואז נסה שוב.")
                 if st.button("🔄 נסה שוב"):
                     st.session_state.pop("pipeline_result", None)
@@ -297,6 +303,37 @@ def _display_results_summary():
         st.metric("תקציב", f"₪{result.get('total_budget', 0):,.0f}")
     with col3:
         st.metric("מענק", f"₪{result.get('grant_amount', 0):,.0f}")
+
+
+def _run_pipeline_sync(inputs: dict) -> dict:
+    """Run the async pipeline in a dedicated thread with its own event loop.
+
+    Streamlit ≥1.38 runs inside an async server, so calling asyncio.run()
+    directly raises 'event loop is already running'.  Spawning a new thread
+    gives us an isolated loop that is guaranteed to be idle.
+    """
+    result_holder: list = []
+    exception_holder: list = []
+
+    def worker():
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            result_holder.append(loop.run_until_complete(_run_pipeline(inputs)))
+        except Exception as exc:  # noqa: BLE001
+            exception_holder.append(exc)
+        finally:
+            loop.close()
+
+    thread = threading.Thread(target=worker, daemon=True)
+    thread.start()
+    thread.join(timeout=600)  # 10-minute hard cap
+
+    if exception_holder:
+        raise exception_holder[0]
+    if not result_holder:
+        raise RuntimeError("Pipeline thread timed out after 10 minutes")
+    return result_holder[0]
 
 
 async def _run_pipeline(inputs: dict) -> dict:
