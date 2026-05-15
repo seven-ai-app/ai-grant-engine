@@ -80,9 +80,7 @@ def _render_provider_config():
     }
 
     for label, key in providers.items():
-        val = st.text_input(label, type="password", key=key)
-        if val:
-            st.session_state[key] = val
+        st.text_input(label, type="password", key=key)
 
     configured = sum(1 for k in providers.values() if st.session_state.get(k))
     if configured > 0:
