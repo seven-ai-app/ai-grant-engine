@@ -1,8 +1,6 @@
 import logging
 from typing import Literal
 
-from tenacity import retry, stop_after_attempt, wait_exponential
-
 from .provider import LLMProvider, LLMResponse
 from .providers import (
     ClaudeProvider,
@@ -46,22 +44,24 @@ class LLMRouter:
 
         if not self._providers:
             raise ValueError(
-                "No LLM providers configured. Set at least one API key in .env"
+                "לא הוגדר אף ספק LLM. יש להגדיר לפחות מפתח API אחד בהגדרות."
             )
 
-    def get_provider(self, task_type: TaskType = "hebrew") -> LLMProvider:
+    def _get_priority_providers(self, task_type: TaskType) -> list[LLMProvider]:
+        """Return providers in priority order, all available ones."""
         priority = self.settings.get_priority_list(task_type)
+        ordered = []
+        # First: providers in priority order
         for name in priority:
-            provider = self._providers.get(name)
-            if provider and provider.is_available():
-                return provider
-        # Fallback to any available
-        for provider in self._providers.values():
-            if provider.is_available():
-                return provider
-        raise RuntimeError("No LLM providers available")
+            p = self._providers.get(name)
+            if p and p.is_available():
+                ordered.append(p)
+        # Then: any remaining providers not in priority list
+        for p in self._providers.values():
+            if p not in ordered and p.is_available():
+                ordered.append(p)
+        return ordered
 
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=1, max=10))
     async def generate(
         self,
         messages: list[dict[str, str]],
@@ -70,19 +70,30 @@ class LLMRouter:
         max_tokens: int = 4096,
         **kwargs,
     ) -> LLMResponse:
-        provider = self.get_provider(task_type)
-        try:
-            return await provider.generate(
-                messages=messages,
-                temperature=temperature,
-                max_tokens=max_tokens,
-                **kwargs,
-            )
-        except Exception as e:
-            logger.warning(f"Provider {provider.name} failed: {e}, trying next")
-            # Remove failed provider temporarily and retry
-            self._providers.pop(provider.name, None)
-            raise
+        """Try each provider in order, fall back on failure."""
+        providers = self._get_priority_providers(task_type)
+        if not providers:
+            raise RuntimeError("לא נמצאו ספקי LLM זמינים. יש להגדיר מפתח API בהגדרות.")
+
+        last_error = None
+        for provider in providers:
+            try:
+                logger.info(f"Trying provider: {provider.name}")
+                return await provider.generate(
+                    messages=messages,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    **kwargs,
+                )
+            except Exception as e:
+                logger.warning(f"Provider {provider.name} failed: {e}")
+                last_error = e
+                continue  # Try next provider
+
+        raise RuntimeError(
+            f"כל ספקי ה-LLM נכשלו. שגיאה אחרונה: {last_error}\n"
+            "בדוק שמפתח ה-API תקין."
+        )
 
     async def generate_structured(
         self,
@@ -91,5 +102,20 @@ class LLMRouter:
         task_type: TaskType = "structured",
         **kwargs,
     ):
-        provider = self.get_provider(task_type)
-        return await provider.generate_structured(messages=messages, schema=schema, **kwargs)
+        """Try each provider for structured output."""
+        providers = self._get_priority_providers(task_type)
+        if not providers:
+            raise RuntimeError("לא נמצאו ספקי LLM זמינים.")
+
+        last_error = None
+        for provider in providers:
+            try:
+                return await provider.generate_structured(
+                    messages=messages, schema=schema, **kwargs
+                )
+            except Exception as e:
+                logger.warning(f"Provider {provider.name} structured failed: {e}")
+                last_error = e
+                continue
+
+        raise RuntimeError(f"כל ספקי ה-LLM נכשלו לייצר output מובנה: {last_error}")

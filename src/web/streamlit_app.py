@@ -199,11 +199,20 @@ def _render_pipeline_progress():
 
     # Run pipeline
     if st.session_state.get("pipeline_input") and not st.session_state.get("pipeline_result"):
-        with st.spinner("מעבד..."):
-            result = asyncio.run(_run_pipeline(st.session_state["pipeline_input"]))
-            st.session_state["pipeline_result"] = result
-            st.session_state["pipeline_complete"] = True
-            st.rerun()
+        with st.spinner("🤖 המערכת כותבת את הבקשה... (עלול לקחת 2-5 דקות)"):
+            try:
+                result = asyncio.run(_run_pipeline(st.session_state["pipeline_input"]))
+                st.session_state["pipeline_result"] = result
+                st.session_state["pipeline_complete"] = True
+                st.rerun()
+            except Exception as e:
+                st.session_state["pipeline_running"] = False
+                st.error(f"❌ שגיאה בהרצת המנוע:\n\n`{str(e)}`")
+                st.info("💡 בדוק שמפתח ה-API שהוזן תקין, ואז נסה שוב.")
+                if st.button("🔄 נסה שוב"):
+                    st.session_state.pop("pipeline_result", None)
+                    st.session_state["pipeline_running"] = True
+                    st.rerun()
 
 
 def _render_outputs():
