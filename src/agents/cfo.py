@@ -92,18 +92,25 @@ class CFOAgent(BaseAgent):
 
 {context}
 
-צור 6-10 שורות תקציב מהקטגוריות המותרות בלבד:
-- subcontractors (קבלני משנה - עד 300 ש"ח/שעה)
-- materials (חומרים ורכיבים)
-- ip_patents (קניין רוחני)
-- business_development (פיתוח עסקי)
-- equipment_depreciation (פחת ציוד - 33%/שנה)
-- travel_abroad (נסיעות לחו"ל - תערוכות בלבד)
+## חובות תקציב (אסור להחמיץ):
+1. חובה לכלול שורת קניין רוחני (ip_patents): סקר פטנטים (FTO) + פטנט זמני - 15,000-20,000 ש"ח
+2. תקציב כולל חייב להיות בין 240,000-250,000 ש"ח (מקסום מענק!)
+3. כל שורת קבלן משנה: ציין שם/תחום, שעות × תעריף (עד 300 ש"ח/שעה)
 
-יעד: תקציב כולל קרוב ל-250,000 ש"ח (מענק מקסימלי: 200,000 ש"ח).
+## קטגוריות מותרות:
+- subcontractors (קבלני משנה - עד 300 ש"ח/שעה) - עיקר התקציב
+- materials (חומרים, שרתי ענן, רכיבים)
+- ip_patents (קניין רוחני - חובה!)
+- business_development (פיתוח עסקי, יועץ שיווק)
+- equipment_depreciation (פחת ציוד - 33%/שנה בלבד)
+- travel_abroad (נסיעות - תערוכות מקצועיות בלבד)
+
+## אסור לכלול:
+- שכר יזמים/מייסדים
+- שכ"ד, חשמל, תקורה כללית
+- מע"מ
 
 עבור כל שורה ספק: category, description_he, amount, justification_he, hourly_rate (אם רלוונטי), hours (אם רלוונטי).
-
 ענה בפורמט JSON: {{"lines": [...], "total": number, "reasoning": "..."}}"""
 
         try:
@@ -135,68 +142,77 @@ class CFOAgent(BaseAgent):
         return budget_lines
 
     def _generate_default_budget(self, state: GrantState) -> list[BudgetLine]:
-        """Fallback budget when LLM structured generation fails."""
+        """Fallback budget when LLM structured generation fails. Targets 250,000 NIS."""
         return [
             BudgetLine(
                 category="subcontractors",
-                description_he="פיתוח תוכנה - ארכיטקטורה וליבת המערכת",
-                amount=80_000,
-                grant_portion=64_000,
-                justification_he="פיתוח ליבת המוצר הטכנולוגית",
-                hourly_rate=250,
-                hours=320,
-            ),
-            BudgetLine(
-                category="subcontractors",
-                description_he="פיתוח אלגוריתמים ומודלי AI",
-                amount=60_000,
-                grant_portion=48_000,
-                justification_he="מחקר ופיתוח אלגוריתמיקה מתקדמת",
+                description_he="מפתח בכיר - ארכיטקטורה וליבת המערכת",
+                amount=84_000,
+                grant_portion=67_200,
+                justification_he="מפתח בכיר Full-Stack לפיתוח ארכיטקטורת הליבה: 280 שעות × 300 ₪/שעה. כולל עיצוב מסד הנתונים, API, תשתית Cloud.",
                 hourly_rate=300,
-                hours=200,
+                hours=280,
             ),
             BudgetLine(
                 category="subcontractors",
-                description_he="עיצוב UX/UI ובניית ממשק משתמש",
+                description_he="חוקר AI/ML - פיתוח אלגוריתמים ומודלים",
+                amount=66_000,
+                grant_portion=52_800,
+                justification_he="חוקר ML מומחה לפיתוח אלגוריתם הליבה ואימון מודלים: 220 שעות × 300 ₪/שעה. כולל ניסויים, Hyperparameter Tuning, אופטימיזציה.",
+                hourly_rate=300,
+                hours=220,
+            ),
+            BudgetLine(
+                category="subcontractors",
+                description_he="מעצב UX/UI ו-Product Designer",
                 amount=30_000,
                 grant_portion=24_000,
-                justification_he="עיצוב חוויית משתמש לאב-טיפוס",
+                justification_he="מעצב בכיר לפיתוח ממשק המשתמש ו-User Journey: 150 שעות × 200 ₪/שעה. כולל Wireframes, Prototype, Usability Testing.",
                 hourly_rate=200,
                 hours=150,
             ),
             BudgetLine(
+                category="subcontractors",
+                description_he="בודק QA ומהנדס DevOps",
+                amount=22_500,
+                grant_portion=18_000,
+                justification_he="מהנדס QA לבדיקות מערכת ו-DevOps לתשתיות CI/CD: 150 שעות × 150 ₪/שעה. כולל Load Testing, Security Testing.",
+                hourly_rate=150,
+                hours=150,
+            ),
+            BudgetLine(
                 category="materials",
-                description_he="שרתי ענן ותשתיות פיתוח",
-                amount=20_000,
-                grant_portion=16_000,
-                justification_he="תשתית מחשוב לפיתוח ובדיקות",
+                description_he="תשתיות ענן ומחשוב לפיתוח ובדיקות",
+                amount=18_000,
+                grant_portion=14_400,
+                justification_he="AWS/GCP: שרתי GPU לאימון מודלים, שרתי API, אחסון Dataset, CDN. 18,000 ₪ ל-12 חודשי פיתוח.",
                 hourly_rate=None,
                 hours=None,
             ),
             BudgetLine(
                 category="ip_patents",
-                description_he="רישום פטנט ובדיקת FTO",
-                amount=30_000,
-                grant_portion=24_000,
-                justification_he="הגנה על הקניין הרוחני וחופש פעולה",
+                description_he="סקר פטנטים (Freedom to Operate) ופטנט זמני",
+                amount=18_000,
+                grant_portion=14_400,
+                justification_he="סקר FTO ע\"י עו\"ד פטנטים: 10,000 ₪. פטנט זמני (Provisional) בארה\"ב לחידושי הליבה: 8,000 ₪. חיוני להגנה טרם כניסה לשוק.",
                 hourly_rate=None,
                 hours=None,
             ),
             BudgetLine(
                 category="business_development",
-                description_he="יועץ שיווק ופיתוח עסקי",
-                amount=20_000,
-                grant_portion=16_000,
-                justification_he="תיקוף שוק ובניית אסטרטגיה עסקית",
-                hourly_rate=200,
-                hours=100,
+                description_he="יועץ עסקי ופיתוח שוק",
+                amount=7_500,
+                grant_portion=6_000,
+                justification_he="יועץ Business Development לתיקוף שוק, גיוס לקוחות פיילוט ובניית Go-to-Market: 50 שעות × 150 ₪/שעה.",
+                hourly_rate=150,
+                hours=50,
             ),
             BudgetLine(
                 category="travel_abroad",
-                description_he="השתתפות בתערוכה מקצועית בחו\"ל",
-                amount=10_000,
-                grant_portion=8_000,
-                justification_he="חשיפה בינלאומית ויצירת קשרים עסקיים",
+                description_he="השתתפות בכנס/תערוכה בינלאומית מקצועית",
+                amount=4_000,
+                grant_portion=3_200,
+                justification_he="השתתפות בתערוכה מקצועית בינלאומית בתחום (כגון CES / Web Summit / TechCrunch Disrupt): טיסה + לינה + כרטיס כניסה.",
                 hourly_rate=None,
                 hours=None,
             ),
